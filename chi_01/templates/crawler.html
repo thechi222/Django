@@ -1,15 +1,312 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
   <meta charset="UTF-8">
-  <title>網站爬蟲工具</title>
+  <title>查詢機票 | FlyHunt</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    header {
+      background-color: #04361f;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .site-title {
+      font-size: 24px;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .form-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .trip-type-tabs {
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 1px solid #ccc;
+      margin-top: 30px;
+    }
+
+    .trip-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #444;
+    }
+
+    .trip-tab.active {
+      background-color: #04361f;
+      color: white;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .section {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .route {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .select-button {
+      padding: 10px 20px;
+      background-color: #f2f2f2;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .arrow {
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .input-popup {
+      position: relative;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .input-popup input {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      z-index: 999;
+      background-color: white;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-height: 200px;
+      overflow-y: auto;
+      left: 10%;
+      box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-item {
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+      background-color: #eee
+    }
+
+    .inline select {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background-color: #04361f;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 16px;
+      border: none;
+      border-radius: 0;
+      margin-top: 40px;
+      cursor: pointer;
+    }
+
+    footer {
+      margin-top: 80px;
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .notice {
+      font-size: 14px;
+      background-color: #79791d;
+      border-left: 5px solid white;
+      padding: 10px;
+      margin-top: 20px;
+      text-align: left;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>輸入網址進行爬蟲</h1>
-  <form action="/crawl" method="POST">
-    <label for="url">目標網址：</label>
-    <input type="text" id="url" name="url" required>
-    <button type="submit">開始爬蟲</button>
+  <header>
+    <h1 class="site-title">FlyHunt</h1>
+  </header>
+
+  <form action="{% url 'run_crawler' %}" method="POST" class="form-container" onsubmit="return validateDates()">
+    {% csrf_token %}
+
+    <div class="trip-type-tabs">
+      <div class="trip-tab active" onclick="selectTripType('round')">來回</div>
+      <div class="trip-tab" onclick="selectTripType('oneway')">單程</div>
+    </div>
+
+    <div class="section">
+      <label>我要前往</label>
+      <div class="route">
+        <div class="select-button" onclick="toggleInput('origin')">出發地</div>
+        <div class="arrow" onclick="swapLocations()" title="對調出發地與目的地">⇄</div>
+        <div class="select-button" onclick="toggleInput('destination')">目的地</div>
+      </div>
+
+      <div id="origin-input" class="input-popup" style="display: none;">
+        <input type="text" name="origin" id="origin" placeholder="輸入出發地" onkeyup="autocomplete(this, 'origin-list')" required>
+        <div id="origin-list" class="autocomplete-list"></div>
+      </div>
+
+      <div id="destination-input" class="input-popup" style="display: none;">
+        <input type="text" name="destination" id="destination" placeholder="輸入目的地" onkeyup="autocomplete(this, 'destination-list')" required>
+        <div id="destination-list" class="autocomplete-list"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>旅行日期</label>
+      <input type="date" name="depart_date" id="depart_date" required>
+      <div id="return-date-wrapper" style="margin-top: 10px;">
+        <label>回程日期</label>
+        <input type="date" name="return_date" id="return_date">
+      </div>
+    </div>
+
+    <div class="section">
+      <label>人數</label>
+      <div class="inline">
+        <select name="passengers" required>
+          {% for i in passenger_range %}
+          <option value="{{ i }}">人數 {{ i }} 位</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="notice">📢 預訂日本國內線航班，請至少提前 3 天查詢</div>
+
+    <button type="submit" class="submit-btn">搜尋航班 →</button>
   </form>
+
+  <footer>
+    © 2025 FlyHunt. All rights reserved.
+  </footer>
+
+  <script>
+    const cities = [
+      { name: "台北", code: "TPE" },
+      { name: "東京", code: "NRT" },
+      { name: "大阪", code: "KIX" },
+      { name: "台中", code: "RMQ" },
+      { name: "高雄", code: "KHH" },
+      { name: "舊金山", code: "SFO" },
+      { name: "首爾", code: "ICN" },
+      { name: "香港", code: "HKG" },
+      { name: "曼谷", code: "BKK" },
+      { name: "新加坡", code: "SIN" },
+      { name: "吉隆坡", code: "KUL" },
+      { name: "倫敦", code: "LHR" },
+      { name: "巴黎", code: "CDG" },
+      { name: "紐約", code: "JFK" },
+      { name: "洛杉磯", code: "LAX" },
+    ];
+
+    function toggleInput(type) {
+      const inputDiv = document.getElementById(`${type}-input`);
+      inputDiv.style.display = 'block';
+      const input = document.getElementById(type);
+      input.focus();
+      autocomplete(input, `${type}-list`);
+    }
+
+    function swapLocations() {
+      const originInput = document.getElementById('origin');
+      const destinationInput = document.getElementById('destination');
+      const temp = originInput.value;
+      originInput.value = destinationInput.value;
+      destinationInput.value = temp;
+      autocomplete(originInput, 'origin-list');
+      autocomplete(destinationInput, 'destination-list');
+    }
+
+    function selectTripType(type) {
+      document.querySelectorAll('.trip-tab').forEach(tab => tab.classList.remove('active'));
+      if (type === 'round') {
+        document.querySelector('.trip-tab:nth-child(1)').classList.add('active');
+        document.getElementById('return-date-wrapper').style.display = 'block';
+      } else {
+        document.querySelector('.trip-tab:nth-child(2)').classList.add('active');
+        document.getElementById('return-date-wrapper').style.display = 'none';
+      }
+    }
+
+    function autocomplete(inputElem, listId) {
+      const listElem = document.getElementById(listId);
+      const value = inputElem.value.toLowerCase();
+      listElem.innerHTML = "";
+      if (value === "") return;
+
+      const filtered = cities.filter(city =>
+        city.name.toLowerCase().includes(value) ||
+        city.code.toLowerCase().includes(value)
+      );
+
+      filtered.forEach(city => {
+        const item = document.createElement("div");
+        item.classList.add("autocomplete-item");
+        item.innerText = `${city.name} (${city.code})`;
+        item.onclick = () => {
+          inputElem.value = `${city.name} (${city.code})`;
+          listElem.innerHTML = "";
+        };
+        listElem.appendChild(item);
+      });
+    }
+
+    function validateDates() {
+      const depart = document.getElementById('depart_date').value;
+      const ret = document.getElementById('return_date').value;
+      if (ret && ret < depart) {
+        alert("⚠️ 回程日期不得早於出發日期。");
+        return false;
+      }
+      return true;
+    }
+
+    window.onload = () => {
+      toggleInput('origin');
+    };
+
+    document.addEventListener('click', function (e) {
+      const originList = document.getElementById('origin-list');
+      const destList = document.getElementById('destination-list');
+      if (!e.target.closest('.input-popup')) {
+        originList.innerHTML = "";
+        destList.innerHTML = "";
+      }
+    });
+  </script>
 </body>
+
 </html>

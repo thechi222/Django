@@ -2,12 +2,91 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>爬蟲成功</title>
+  <title>查詢成功 | FlyHunt</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    header {
+      background-color: #04361f;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #2e7d32;
+      font-size: 26px;
+      text-align: center;
+    }
+
+    .result-block {
+      margin-top: 30px;
+    }
+
+    .result-block p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: #0d47a1;
+    }
+
+    a.button {
+      display: block;
+      text-align: center;
+      background-color: #04361f;
+      color: white;
+      padding: 12px;
+      margin-top: 30px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+
+    a.button:hover {
+      background-color: #065c36;
+    }
+
+  </style>
 </head>
 <body>
-  <h1>✅ 爬蟲成功</h1>
-  <p><strong>網址：</strong>{{ url }}</p>
-  <p><strong>網站標題：</strong>{{ title }}</p>
-  <a href="/">回首頁</a>
+
+  <header>
+    <h1>FlyHunt | 查詢結果</h1>
+  </header>
+
+  <div class="container">
+    <h1>✅ 星宇航空票價查詢成功</h1>
+
+    {% if results %}
+      <div class="result-block">
+        <p>✈️ 航空公司：<span class="highlight">{{ results.0.airline }}</span></p>
+        <p>💰 票價：<span class="highlight">{{ results.0.price }}</span></p>
+        <p>🔗 原始網址：<a href="{{ results.0.url }}" target="_blank">{{ results.0.url }}</a></p>
+      </div>
+    {% else %}
+      <p>⚠️ 沒有收到任何搜尋結果。</p>
+    {% endif %}
+
+    <a href="/" class="button">🔙 回首頁繼續查詢</a>
+  </div>
+
 </body>
 </html>
