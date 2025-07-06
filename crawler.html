@@ -1,0 +1,324 @@
+<!-- ✅ crawler.html：Vue 版本出發地 + 目的地 + trip 類型 + 顯示結果 -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <title>查詢機票 | FlyHunt</title>
+  <style>
+    body {
+      font-family: "Noto Sans TC", sans-serif;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      color: #222;
+    }
+
+    header {
+      background-color: #04361f;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .site-title {
+      font-size: 24px;
+      font-weight: bold;
+      font-style: italic;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .form-container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .trip-type-tabs {
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 1px solid #ccc;
+      margin-top: 30px;
+    }
+
+    .trip-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #444;
+    }
+
+    .trip-tab.active {
+      background-color: #04361f;
+      color: white;
+      border-radius: 4px 4px 0 0;
+    }
+
+    .section {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .route {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .select-button {
+      padding: 10px 20px;
+      background-color: #f2f2f2;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .arrow {
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .input-popup {
+      position: relative;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    .input-popup input {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      z-index: 999;
+      background-color: white;
+      border: 1px solid #ccc;
+      width: 80%;
+      max-height: 200px;
+      overflow-y: auto;
+      left: 10%;
+      box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-item {
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+      background-color: #eee
+    }
+
+    .inline select {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background-color: #04361f;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 16px;
+      border: none;
+      border-radius: 0;
+      margin-top: 40px;
+      cursor: pointer;
+    }
+
+    footer {
+      margin-top: 80px;
+      text-align: center;
+      font-size: 13px;
+      color: #999;
+    }
+
+    .notice {
+      font-size: 14px;
+      background-color: #79791d;
+      border-left: 5px solid white;
+      padding: 10px;
+      margin-top: 20px;
+      text-align: left;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+</head>
+
+<body>
+  <header>
+    <h1 class="site-title">FlyHunt</h1>
+  </header>
+
+  <div id="vue-app">
+    <form action="{% url 'run_crawler' %}" method="POST" class="form-container" @submit="checkDates">
+      {% csrf_token %}
+
+      <!-- ✅ Trip type 切換 -->
+      <div class="trip-type-tabs">
+        <div class="trip-tab" :class="{ active: tripType === 'round' }" @click="tripType = 'round'">來回</div>
+        <div class="trip-tab" :class="{ active: tripType === 'oneway' }" @click="tripType = 'oneway'">單程</div>
+      </div>
+
+      <div class="section">
+        <label>我要前往</label>
+        <div class="route">
+          <div class="select-button" @click="showOrigin = true">出發地</div>
+          <div class="arrow" @click="swapLocations">⇄</div>
+          <div class="select-button" @click="showDestination = true">目的地</div>
+        </div>
+
+        {% verbatim %}
+        <!-- ✅ 出發地輸入框 -->
+        <div v-if="showOrigin" class="input-popup">
+          <input type="text" name="origin" v-model="originInput" @input="filterCities('origin')" placeholder="輸入出發地"
+            required>
+          <div class="autocomplete-list">
+            <div class="autocomplete-item" v-for="city in filteredOrigin" :key="city.code"
+              @click="selectCity(city, 'origin')">
+              {{ city.name + ' (' + city.code + ')' }}
+            </div>
+          </div>
+        </div>
+        {% endverbatim %}
+
+
+        <!-- ✅ 目的地輸入框 -->
+        <div v-if="showDestination" class="input-popup">
+          <input type="text" name="destination" v-model="destinationInput" @input="filterCities('destination')"
+            placeholder="輸入目的地" required>
+          <div class="autocomplete-list">
+            <div class="autocomplete-item" @click="selectCity(type, city)">
+              <span v-html="city.name + ' (' + city.code + ')'"></span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+  </div>
+
+  <!-- ✅ 日期欄位 -->
+  <div class="section">
+    <label>旅行日期</label>
+    <input type="date" name="depart_date" v-model="departDate" required>
+    <div id="return-date-wrapper" style="margin-top: 10px;" v-show="tripType === 'round'">
+      <label>回程日期</label>
+      <input type="date" name="return_date" v-model="returnDate">
+    </div>
+  </div>
+
+  <div class="section">
+    <label>人數</label>
+    <div class="inline">
+      <select name="passengers" required>
+        {% for i in passenger_range %}
+        <option value="{{ i }}">人數 {{ i }} 位</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="notice">📢 預訂日本國內線航班，請至少提前 3 天查詢</div>
+  <button type="submit" class="submit-btn">搜尋航班 →</button>
+  </form>
+
+  <!-- ✅ 顯示查詢結果（模擬用） -->
+  <div v-if="showResults" style="margin-top: 40px; text-align: left;">
+    <h3>搜尋結果</h3>
+    <p>出發地：{{ originInput }}</p>
+    <p>目的地：{{ destinationInput }}</p>
+    <p>出發日期：{{ departDate }}</p>
+    <p v-if="tripType === 'round'">回程日期：{{ returnDate }}</p>
+  </div>
+  </div>
+
+  <footer>
+    © 2025 FlyHunt. All rights reserved.
+  </footer>
+
+  <!-- ✅ Vue 控制 -->
+  <script>
+    new Vue({
+      el: '#vue-app',
+      data: {
+        tripType: 'round',
+        showOrigin: false,
+        showDestination: false,
+        originInput: '',
+        destinationInput: '',
+        departDate: '',
+        returnDate: '',
+        showResults: false,
+        cities: [
+          { name: "台北", code: "TPE" },
+          { name: "東京", code: "NRT" },
+          { name: "大阪", code: "KIX" },
+          { name: "台中", code: "RMQ" },
+          { name: "高雄", code: "KHH" },
+          { name: "舊金山", code: "SFO" },
+          { name: "首爾", code: "ICN" },
+          { name: "香港", code: "HKG" },
+          { name: "曼谷", code: "BKK" },
+          { name: "新加坡", code: "SIN" },
+          { name: "吉隆坡", code: "KUL" },
+          { name: "倫敦", code: "LHR" },
+          { name: "巴黎", code: "CDG" },
+          { name: "紐約", code: "JFK" },
+          { name: "洛杉磯", code: "LAX" },
+        ],
+        filteredOrigin: [],
+        filteredDestination: []
+      },
+      methods: {
+        filterCities(type) {
+          const keyword = (type === 'origin' ? this.originInput : this.destinationInput).toLowerCase();
+          const filtered = this.cities.filter(city =>
+            city.name.toLowerCase().includes(keyword) ||
+            city.code.toLowerCase().includes(keyword)
+          );
+          if (type === 'origin') {
+            this.filteredOrigin = filtered;
+          } else {
+            this.filteredDestination = filtered;
+          }
+        },
+        selectCity(city, type) {
+          const value = `${city.name} (${city.code})`;
+          if (type === 'origin') {
+            this.originInput = value;
+            this.filteredOrigin = [];
+          } else {
+            this.destinationInput = value;
+            this.filteredDestination = [];
+          }
+        },
+        swapLocations() {
+          const temp = this.originInput;
+          this.originInput = this.destinationInput;
+          this.destinationInput = temp;
+        },
+        checkDates(e) {
+          if (this.tripType === 'round' && this.returnDate && this.returnDate < this.departDate) {
+            alert("⚠️ 回程日期不得早於出發日期。");
+            e.preventDefault();
+          } else {
+            this.showResults = true;
+            // 可選：真的提交給後端時請刪除上行
+            e.preventDefault();
+          }
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
