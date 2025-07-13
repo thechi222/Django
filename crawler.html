@@ -178,147 +178,135 @@
         </div>
 
         {% verbatim %}
-        <!-- ✅ 出發地輸入框 -->
+
+        <!-- 出發地輸入框 -->
         <div v-if="showOrigin" class="input-popup">
           <input type="text" name="origin" v-model="originInput" @input="filterCities('origin')" placeholder="輸入出發地"
             required>
           <div class="autocomplete-list">
             <div class="autocomplete-item" v-for="city in filteredOrigin" :key="city.code"
               @click="selectCity(city, 'origin')">
-              {{ city.name + ' (' + city.code + ')' }}
+              <span v-html="city.name + ' (' + city.code + ')'"></span>
             </div>
           </div>
         </div>
-        {% endverbatim %}
 
-
-        <!-- ✅ 目的地輸入框 -->
+        <!-- 目的地輸入框 -->
         <div v-if="showDestination" class="input-popup">
           <input type="text" name="destination" v-model="destinationInput" @input="filterCities('destination')"
             placeholder="輸入目的地" required>
           <div class="autocomplete-list">
-            <div class="autocomplete-item" @click="selectCity(type, city)">
+            <div class="autocomplete-item" v-for="city in filteredDestination" :key="city.code"
+              @click="selectCity(city, 'destination')">
               <span v-html="city.name + ' (' + city.code + ')'"></span>
             </div>
-
           </div>
         </div>
-      </div>
-  </div>
 
-  <!-- ✅ 日期欄位 -->
-  <div class="section">
-    <label>旅行日期</label>
-    <input type="date" name="depart_date" v-model="departDate" required>
-    <div id="return-date-wrapper" style="margin-top: 10px;" v-show="tripType === 'round'">
-      <label>回程日期</label>
-      <input type="date" name="return_date" v-model="returnDate">
-    </div>
-  </div>
+        {% endverbatim %}
+        <!-- ✅ 日期欄位 -->
+        <div class="section">
+          <label>旅行日期</label>
+          <input type="date" name="depart_date" v-model="departDate" required>
+          <div id="return-date-wrapper" style="margin-top: 10px;" v-show="tripType === 'round'">
+            <label>回程日期</label>
+            <input type="date" name="return_date" v-model="returnDate">
+          </div>
+        </div>
 
-  <div class="section">
-    <label>人數</label>
-    <div class="inline">
-      <select name="passengers" required>
-        {% for i in passenger_range %}
-        <option value="{{ i }}">人數 {{ i }} 位</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
+        <div class="section">
+          <label>人數</label>
+          <div class="inline">
+            <select name="passengers" required>
+              {% for i in passenger_range %}
+              <option value="{{ i }}">人數 {{ i }} 位</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
 
-  <div class="notice">📢 預訂日本國內線航班，請至少提前 3 天查詢</div>
-  <button type="submit" class="submit-btn">搜尋航班 →</button>
-  </form>
+        <div class="notice">📢 預訂日本國內線航班，請至少提前 3 天查詢</div>
+        <button type="submit" class="submit-btn">搜尋航班 →</button>
+    </form>
 
-  <!-- ✅ 顯示查詢結果（模擬用） -->
-  <div v-if="showResults" style="margin-top: 40px; text-align: left;">
-    <h3>搜尋結果</h3>
-    <p>出發地：{{ originInput }}</p>
-    <p>目的地：{{ destinationInput }}</p>
-    <p>出發日期：{{ departDate }}</p>
-    <p v-if="tripType === 'round'">回程日期：{{ returnDate }}</p>
-  </div>
-  </div>
+    <footer>
+      © 2025 FlyHunt. All rights reserved.
+    </footer>
 
-  <footer>
-    © 2025 FlyHunt. All rights reserved.
-  </footer>
-
-  <!-- ✅ Vue 控制 -->
-  <script>
-    new Vue({
-      el: '#vue-app',
-      data: {
-        tripType: 'round',
-        showOrigin: false,
-        showDestination: false,
-        originInput: '',
-        destinationInput: '',
-        departDate: '',
-        returnDate: '',
-        showResults: false,
-        cities: [
-          { name: "台北", code: "TPE" },
-          { name: "東京", code: "NRT" },
-          { name: "大阪", code: "KIX" },
-          { name: "台中", code: "RMQ" },
-          { name: "高雄", code: "KHH" },
-          { name: "舊金山", code: "SFO" },
-          { name: "首爾", code: "ICN" },
-          { name: "香港", code: "HKG" },
-          { name: "曼谷", code: "BKK" },
-          { name: "新加坡", code: "SIN" },
-          { name: "吉隆坡", code: "KUL" },
-          { name: "倫敦", code: "LHR" },
-          { name: "巴黎", code: "CDG" },
-          { name: "紐約", code: "JFK" },
-          { name: "洛杉磯", code: "LAX" },
-        ],
-        filteredOrigin: [],
-        filteredDestination: []
-      },
-      methods: {
-        filterCities(type) {
-          const keyword = (type === 'origin' ? this.originInput : this.destinationInput).toLowerCase();
-          const filtered = this.cities.filter(city =>
-            city.name.toLowerCase().includes(keyword) ||
-            city.code.toLowerCase().includes(keyword)
-          );
-          if (type === 'origin') {
-            this.filteredOrigin = filtered;
-          } else {
-            this.filteredDestination = filtered;
-          }
+    <!-- ✅ Vue 控制 -->
+    <script>
+      new Vue({
+        el: '#vue-app',
+        data: {
+          tripType: 'round',
+          showOrigin: false,
+          showDestination: false,
+          originInput: '',
+          destinationInput: '',
+          departDate: '',
+          returnDate: '',
+          showResults: false,
+          cities: [
+            { name: "台北", code: "TPE" },
+            { name: "東京", code: "NRT" },
+            { name: "大阪", code: "KIX" },
+            { name: "台中", code: "RMQ" },
+            { name: "高雄", code: "KHH" },
+            { name: "舊金山", code: "SFO" },
+            { name: "首爾", code: "ICN" },
+            { name: "香港", code: "HKG" },
+            { name: "曼谷", code: "BKK" },
+            { name: "新加坡", code: "SIN" },
+            { name: "吉隆坡", code: "KUL" },
+            { name: "倫敦", code: "LHR" },
+            { name: "巴黎", code: "CDG" },
+            { name: "紐約", code: "JFK" },
+            { name: "洛杉磯", code: "LAX" },
+          ],
+          filteredOrigin: [],
+          filteredDestination: []
         },
-        selectCity(city, type) {
-          const value = `${city.name} (${city.code})`;
-          if (type === 'origin') {
-            this.originInput = value;
-            this.filteredOrigin = [];
-          } else {
-            this.destinationInput = value;
-            this.filteredDestination = [];
-          }
-        },
-        swapLocations() {
-          const temp = this.originInput;
-          this.originInput = this.destinationInput;
-          this.destinationInput = temp;
-        },
-        checkDates(e) {
-          if (this.tripType === 'round' && this.returnDate && this.returnDate < this.departDate) {
-            alert("⚠️ 回程日期不得早於出發日期。");
-            e.preventDefault();
-          } else {
-            this.showResults = true;
-            // 可選：真的提交給後端時請刪除上行
-            e.preventDefault();
+        methods: {
+          filterCities(type) {
+            const keyword = (type === 'origin' ? this.originInput : this.destinationInput).toLowerCase();
+            const filtered = this.cities.filter(city =>
+              city.name.toLowerCase().includes(keyword) ||
+              city.code.toLowerCase().includes(keyword)
+            );
+            if (type === 'origin') {
+              this.filteredOrigin = filtered;
+            } else {
+              this.filteredDestination = filtered;
+            }
+          },
+          selectCity(city, type) {
+            const value = `${city.name} (${city.code})`;
+            if (type === 'origin') {
+              this.originInput = value;
+              this.filteredOrigin = [];
+            } else {
+              this.destinationInput = value;
+              this.filteredDestination = [];
+            }
+          },
+          swapLocations() {
+            const temp = this.originInput;
+            this.originInput = this.destinationInput;
+            this.destinationInput = temp;
+          },
+          checkDates(e) {
+            if (this.tripType === 'round' && this.returnDate && this.returnDate < this.departDate) {
+              alert("⚠️ 回程日期不得早於出發日期。");
+              e.preventDefault();
+            } else {
+              this.showResults = true;
+              // 可選：真的提交給後端時請刪除上行
+              e.preventDefault();
+            }
           }
         }
-      }
-    });
-  </script>
+      });
+    </script>
 </body>
 
 </html>
